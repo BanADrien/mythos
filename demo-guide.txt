@@ -1,0 +1,68 @@
+Mythos Archives - Demo rapide
+
+Preparez les services
+1) auth-service
+   cd auth-service
+   npm install
+   npx prisma generate
+   setx DATABASE_URL "file:./dev.db"
+   setx JWT_SECRET "super-secret-change-me"
+   npm run dev   # port 4000
+
+2) lore-service (Mongo requis)
+   cd lore-service
+   npm install
+   setx MONGO_URL "mongodb://localhost:27017/mythos"
+   setx AUTH_SERVICE_URL "http://localhost:4000"
+   setx JWT_SECRET "super-secret-change-me"
+   npm run dev   # port 5000
+
+Demo Postman/Thunder Client (recommande)
+- Creez un env avec baseAuth=http://localhost:4000, baseLore=http://localhost:5000, token=
+- Chainez les requetes ci-dessous. Recuperez le token apres login et mettez-le dans l'env.
+
+Scenario en 6 requetes
+1) Register (USER)
+   POST {{baseAuth}}/auth/register
+   {"email":"user@demo.com","username":"demo","password":"pass"}
+
+2) Login -> token
+   POST {{baseAuth}}/auth/login
+   {"email":"user@demo.com","password":"pass"}
+   -> stocker token dans l'env
+
+3) Me
+   GET {{baseAuth}}/auth/me
+   Header: Authorization: Bearer {{token}}
+
+4) Create creature
+   POST {{baseLore}}/creatures
+   Headers: Authorization: Bearer {{token}}, Content-Type: application/json
+   {"name":"Lindworm","origin":"Nordique"}
+
+5) Post testimony
+   POST {{baseLore}}/testimonies
+   Headers: Authorization: Bearer {{token}}, Content-Type: application/json
+   {"creatureId":"<CREATURE_ID>","description":"Vu dans la brume"}
+
+6) Validate (EXPERT/ADMIN)
+   POST {{baseLore}}/testimonies/<ID>/validate
+   Header: Authorization: Bearer {{token_expert}}
+   (montre reputation + legendScore ensuite)
+
+Bonus de visualisation
+- GET {{baseLore}}/creatures?sort=legendScore (Bearer {{token}})
+- GET {{baseLore}}/creatures/<id>/testimonies
+
+Regles metier a rappeler en demo
+- Cooldown 5 minutes par auteur/creature pour les temoignages
+- Pas d'auto-validation/rejet de son propre temoignage
+- Nom de creature unique, description obligatoire
+- legendScore = 1 + (valides / 5)
+- Reputation: +3 valide, -1 rejete, +1 si validateur EXPERT; auto-promotion EXPERT a 10+
+
+Plan de presentation (4-6 minutes)
+- 30s: Architecture (2 microservices, JWT, Mongo + SQLite)
+- 2-3 min: Chainage des 6 requetes ci-dessus
+- 1 min: Montrer legendScore trie et reputation qui monte
+- 30s: Rappeler les regles et roles USER/EXPERT/ADMIN
